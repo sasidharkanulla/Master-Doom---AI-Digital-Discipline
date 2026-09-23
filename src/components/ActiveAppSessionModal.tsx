@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import {
   X,
@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { AppIcon } from "./AppIcon";
 import { PomodoroTimer } from "./PomodoroTimer";
+import { createAccessDeadline } from "../utils/accessDeadline";
 
 interface ActiveAppSessionModalProps {
   isOpen: boolean;
@@ -40,7 +41,7 @@ export const ActiveAppSessionModal: React.FC<ActiveAppSessionModalProps> = ({
   isOpen,
   onClose,
   app,
-  initialGrantedSeconds = 900, // 15 minutes default for direct access
+  initialGrantedSeconds = 0, // Missing social grants expire immediately; direct access keeps its own threshold.
   onSessionExtended,
   verifiedReason
 }) => {
@@ -49,6 +50,35 @@ export const ActiveAppSessionModal: React.FC<ActiveAppSessionModalProps> = ({
   const [statedPurpose, setStatedPurpose] = useState("");
   const [extensionNotice, setExtensionNotice] = useState<string | null>(null);
   const [mockContentState, setMockContentState] = useState("");
+  const [remainingSeconds, setRemainingSeconds] = useState(0);
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+
+  // Absolute elapsed time prevents background timer throttling from extending a grant.
+  // The callback ref also prevents parent clock updates from restarting the session.
+  useEffect(() => {
+    if (!isOpen || !app?.is_social_media) return;
+    const deadline = createAccessDeadline(initialGrantedSeconds, performance.now());
+    let expired = false;
+    const tick = () => {
+      if (expired) return;
+      const snapshot = deadline.read(performance.now());
+      setRemainingSeconds(snapshot.remainingSeconds);
+      if (snapshot.expired) {
+        expired = true;
+        onCloseRef.current();
+      }
+    };
+    tick();
+    const timer = window.setInterval(tick, 250);
+    document.addEventListener("visibilitychange", tick);
+    window.addEventListener("focus", tick);
+    return () => {
+      window.clearInterval(timer);
+      document.removeEventListener("visibilitychange", tick);
+      window.removeEventListener("focus", tick);
+    };
+  }, [isOpen, app, initialGrantedSeconds]);
 
   // Track session timer
   useEffect(() => {
@@ -140,7 +170,7 @@ export const ActiveAppSessionModal: React.FC<ActiveAppSessionModalProps> = ({
               </div>
               <div className="text-[11px] font-mono text-white/70 flex items-center gap-1.5">
                 <Clock className="w-3 h-3 text-white" />
-                <span>Elapsed: {formatTimer(elapsedSeconds)}</span>
+                <span>{isSocial ? `Remaining: ${formatTimer(remainingSeconds)}` : `Elapsed: ${formatTimer(elapsedSeconds)}`}</span>
                 {!isSocial && (
                   <span className="text-white/40">/ 15:00 threshold</span>
                 )}

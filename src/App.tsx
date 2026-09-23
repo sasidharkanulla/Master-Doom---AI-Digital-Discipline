@@ -182,6 +182,7 @@ export default function App() {
     category: string;
     icon_name: string;
     is_social_media?: boolean;
+    granted_duration_seconds?: number;
   } | null>(null);
   const [activeSessionReason, setActiveSessionReason] = useState<string | undefined>(undefined);
   const [socialPetitionApp, setSocialPetitionApp] = useState<{
@@ -268,7 +269,8 @@ export default function App() {
       app_name: app.app_name,
       category: app.category,
       icon_name: app.icon_name,
-      is_social_media: true
+      is_social_media: true,
+      granted_duration_seconds: durationSeconds
     });
   };
 
@@ -995,6 +997,7 @@ export default function App() {
           setActiveSessionReason(undefined);
         }}
         app={activeSessionApp}
+        initialGrantedSeconds={activeSessionApp?.granted_duration_seconds}
         verifiedReason={activeSessionReason}
         onSessionExtended={(purpose) => {
           if (user && profile) {
