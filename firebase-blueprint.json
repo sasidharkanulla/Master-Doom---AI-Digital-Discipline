@@ -1,0 +1,47 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "User profile with stoic discipline tracking metrics and preferences",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "email": { "type": "string" },
+        "displayName": { "type": "string" },
+        "photoURL": { "type": "string" },
+        "stoicScore": { "type": "number" },
+        "streakDays": { "type": "number" },
+        "totalReflections": { "type": "number" },
+        "createdAt": { "type": "string" },
+        "lastActive": { "type": "string" }
+      },
+      "required": ["id", "email", "stoicScore"]
+    },
+    "StoicMessage": {
+      "title": "StoicMessage",
+      "description": "A message exchanged between the user and Master Satoshi",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "role": { "type": "string", "enum": ["user", "model", "master"] },
+        "content": { "type": "string" },
+        "timestamp": { "type": "string" },
+        "mode": { "type": "string" },
+        "grounded": { "type": "boolean" },
+        "sources": { "type": "string" }
+      },
+      "required": ["id", "userId", "role", "content", "timestamp"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "User profile containing stoic discipline score and preferences"
+    },
+    "/users/{userId}/messages/{messageId}": {
+      "schema": "StoicMessage",
+      "description": "Stoic chat messages and wisdom exchanged with Master Satoshi"
+    }
+  }
+}

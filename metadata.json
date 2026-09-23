@@ -1,0 +1,6 @@
+{
+  "name": "Gatekeeper - Zero-Trust Digital Discipline",
+  "description": "Zero-Trust Digital Discipline Platform with AI-driven Gatekeeper negotiation, OS-level interceptor overlay, and behavioral analytics.",
+  "requestFramePermissions": ["microphone"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

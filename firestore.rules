@@ -1,0 +1,57 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isValidUserProfile(data, userId) {
+      return data.keys().hasAll(['id', 'email', 'stoicScore']) &&
+             data.id == userId &&
+             data.id is string &&
+             data.email is string &&
+             data.stoicScore is number &&
+             data.stoicScore >= 0 && data.stoicScore <= 100;
+    }
+
+    function isValidStoicMessage(data, userId) {
+      return data.keys().hasAll(['id', 'userId', 'role', 'content', 'timestamp']) &&
+             data.userId == userId &&
+             data.userId is string &&
+             data.role in ['user', 'model', 'master'] &&
+             data.content is string &&
+             data.content.size() <= 10000;
+    }
+
+    // Match user profiles
+    match /users/{userId} {
+      allow get: if isOwner(userId);
+      allow list: if false;
+      allow create: if isOwner(userId) && isValidId(userId) && isValidUserProfile(request.resource.data, userId);
+      allow update: if isOwner(userId) && isValidId(userId) && isValidUserProfile(request.resource.data, userId);
+      allow delete: if isOwner(userId) && isValidId(userId);
+
+      // Match user messages / dialogue history
+      match /messages/{messageId} {
+        allow get, list: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidId(userId) && isValidId(messageId) && isValidStoicMessage(request.resource.data, userId);
+        allow update: if isOwner(userId) && isValidId(userId) && isValidId(messageId) && isValidStoicMessage(request.resource.data, userId);
+        allow delete: if isOwner(userId) && isValidId(userId) && isValidId(messageId);
+      }
+    }
+
+    // Default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
